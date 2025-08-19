@@ -3,8 +3,30 @@ import { getDocs, collection, query, where } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL, // pega do .env
+  headers: { 'Content-Type': 'application/json' },
 });
+
+// Intercepta e adiciona token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Intercepta resposta e trata erro 401
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    console.error('API error:', error);
+    return Promise.reject(error.response?.data || error.message);
+  }
+);
 
 export default api;
 
