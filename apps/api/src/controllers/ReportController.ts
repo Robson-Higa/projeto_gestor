@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { db } from '../config/firebase';
+import type { Request, Response } from 'express';
+import { db } from '../config/firebase.js';
 
 export class ReportController {
   /**
@@ -148,25 +148,24 @@ export class ReportController {
       });
 
       orders.forEach((order: any) => {
-        const createdAt = order.createdAt?.toDate
-          ? order.createdAt.toDate()
-          : new Date(order.createdAt);
-        const monthName = months[createdAt.getMonth()];
+  const createdAt = order.createdAt?.toDate?.() ?? new Date();
+  const monthName = months[createdAt.getMonth()];
 
-        if (monthName) {
-          monthlyData[monthName].total += 1;
-          if (order.status === 'COMPLETED') {
-            monthlyData[monthName].completed += 1;
-          }
-        }
-      });
+        if (monthName && monthlyData[monthName]) {  // ✅ verifica se existe
+    monthlyData[monthName].total += 1;
+    if (order.status === 'COMPLETED') {
+      monthlyData[monthName].completed += 1;
+    }
+  }
+});
 
       // 🔍 Retornar ARRAY para Recharts
-      const responseData = months.map((month) => ({
-        name: month,
-        total: monthlyData[month].total,
-        completed: monthlyData[month].completed,
-      }));
+     const responseData = months.map((month) => ({
+  name: month,
+  total: monthlyData[month]?.total ?? 0,
+  completed: monthlyData[month]?.completed ?? 0,
+}));
+
 
       return res.json(responseData);
     } catch (error) {

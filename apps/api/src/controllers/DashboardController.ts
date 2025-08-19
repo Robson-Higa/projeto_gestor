@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { db } from '../config/firebase';
+import type { Request, Response } from 'express';
+import { db } from '../config/firebase.js';
 
 export class DashboardController {
   
@@ -10,15 +10,26 @@ async getDashboardData(req: Request, res: Response) {
     const usersSnap = await db.collection('users').get();
     const establishmentsSnap = await db.collection('establishments').get();
 
-    const stats: Record<string, number> = {
-      totalOrders: ordersSnap.size,
-      openOrders: 0,
-      inProgressOrders: 0,
-      completedOrders: 0,
-      assignedOrders: 0,
-      totalUsers: usersSnap.size,
-      totalEstablishments: establishmentsSnap.size,
-    };
+    interface Stats {
+  totalOrders: number;
+  openOrders: number;
+  inProgressOrders: number;
+  completedOrders: number;
+  assignedOrders: number;
+  totalUsers: number;
+  totalEstablishments: number;
+}
+
+const stats: Stats = {
+  totalOrders: ordersSnap.size,
+  openOrders: 0,
+  inProgressOrders: 0,
+  completedOrders: 0,
+  assignedOrders: 0,
+  totalUsers: usersSnap.size,
+  totalEstablishments: establishmentsSnap.size,
+};
+
 
     const loggedUser = (req as any).user;
     ordersSnap.forEach(doc => {
@@ -70,17 +81,25 @@ async getDashboardData(req: Request, res: Response) {
     const ordersSnap = await db.collection('serviceOrders').get();
     const usersSnap = await db.collection('users').get();
     const establishmentsSnap = await db.collection('establishments').get();
+interface Stats {
+  totalOrders: number;
+  openOrders: number;
+  inProgressOrders: number;
+  completedOrders: number;
+  assignedOrders: number;
+  totalUsers: number;
+  totalEstablishments: number;
+}
 
-    // Inicializa estatísticas
-    const stats: Record<string, number> = {
-      totalOrders: ordersSnap.size,
-      openOrders: 0,
-      inProgressOrders: 0,
-      completedOrders: 0,
-      assignedOrders: 0,
-      totalUsers: usersSnap.size,
-      totalEstablishments: establishmentsSnap.size,
-    };
+const stats: Stats = {
+  totalOrders: ordersSnap.size,
+  openOrders: 0,
+  inProgressOrders: 0,
+  completedOrders: 0,
+  assignedOrders: 0,
+  totalUsers: usersSnap.size,
+  totalEstablishments: establishmentsSnap.size,
+};
     // Contar ordens por status
     ordersSnap.forEach(doc => {
        const data = doc.data();

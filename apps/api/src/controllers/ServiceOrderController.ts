@@ -1,20 +1,23 @@
-import { Request, Response } from 'express';
-import { db } from '../config/firebase';
-import {
-  ServiceOrder,
-  ServiceOrderStatus,
+import type { Request, Response } from 'express';
+import { db } from '../config/firebase.js';
+import { ServiceOrderStatus,
   UserType,
-  Priority,
+  Priority } from '../../types/index.js'
+import type {
+  ServiceOrder,  
   AuthRequest,
   CreateServiceOrderRequest,
   UpdateServiceOrderRequest,
-} from '../types';
-import { generateId, generateOrderNumber } from '../utils/helpers';
+  MonthData
+} from '../../types/index.js';
+import { generateId, generateOrderNumber } from '../../utils/helpers.js';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
-import whatsappService from '../services/whatsappService';
+import whatsappService from '../services/whatsappService.js';
 
 dayjs.locale('pt-br');
+
+
 
 export class ServiceOrderController {
   async getAllServiceOrders(req: AuthRequest, res: Response) {
@@ -106,7 +109,9 @@ export class ServiceOrderController {
   async getServiceOrderById(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
-
+if (!id) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       const serviceOrderDoc = await db.collection('serviceOrders').doc(id).get();
 
       if (!serviceOrderDoc.exists) {
@@ -190,24 +195,26 @@ export class ServiceOrderController {
         });
       }
 
-      // Buscar ou criar estabelecimento pelo nome
-      let establishmentId: string | undefined;
-      const establishmentDoc = await db
-        .collection('establishments')
-        .where('name', '==', establishmentName)
-        .limit(1)
-        .get();
+let establishmentId: string;
 
-      if (!establishmentDoc.empty) {
-        establishmentId = establishmentDoc.docs[0].id;
-      } else {
-        const newEstablishmentRef = db.collection('establishments').doc();
-        await newEstablishmentRef.set({
-          name: establishmentName,
-          createdAt: new Date(),
-        });
-        establishmentId = newEstablishmentRef.id;
-      }
+const establishmentDoc = await db
+  .collection('establishments')
+  .where('name', '==', establishmentName)
+  .limit(1)
+  .get();
+
+if (establishmentDoc.empty === false) {
+  // Aqui TypeScript sabe que docs[0] existe
+  establishmentId = establishmentDoc.docs[0].id;
+} else {
+  const newEstablishmentRef = db.collection('establishments').doc();
+  await newEstablishmentRef.set({
+    name: establishmentName,
+    createdAt: new Date(),
+  });
+  establishmentId = newEstablishmentRef.id;
+}
+
 
       // Buscar técnico pelo nome (se informado)
       let technicianId: string | null = null;
@@ -531,27 +538,35 @@ export class ServiceOrderController {
       }));
 
       const snap = await query.get();
+interface ServiceOrder {
+  status: string;
+  createdAt: FirebaseFirestore.Timestamp;
+}
 
-      snap.forEach((doc) => {
-        const d = doc.data();
-        if (!d.createdAt) return;
+snap.forEach((doc) => {
+const d = doc.data();
 
-        const createdAt = dayjs(d.createdAt.toDate());
-        const index = stats.findIndex((m) => m.month === createdAt.format('MMM'));
-        if (index < 0) return;
+if (!d || !d.createdAt || !d.status) return;
 
-        const status = d.status.toLowerCase();
+const createdAt = dayjs(d.createdAt.toDate());
+const index = stats.findIndex((m) => m.month === createdAt.format('MMM'));
+if (index < 0) return;
 
-        if (['open', 'assigned', 'in_progress'].includes(status)) {
-          if (status === 'assigned') stats[index].assigned++;
-          else if (status === 'in_progress') stats[index].in_progress++;
-          else stats[index].open++;
-        } else if (['completed', 'confirmed'].includes(status)) {
-          stats[index].completed++;
-        } else if (status === 'cancelled') {
-          stats[index].cancelled++;
-        }
-      });
+const status = (d.status as string).toLowerCase();
+
+const stat = stats[index];
+if (!stat) return;
+
+if (['open', 'assigned', 'in_progress'].includes(status)) {
+  if (status === 'assigned') stat.assigned++;
+  else if (status === 'in_progress') stat.in_progress++;
+  else stat.open++;
+} else if (['completed', 'confirmed'].includes(status)) {
+  stat.completed++;
+} else if (status === 'cancelled') {
+  stat.cancelled++;
+}
+});
 
       return res.json({ data: stats });
     } catch (err) {
@@ -911,25 +926,26 @@ export class ServiceOrderController {
       }
 
       const snapshot = await query.get();
+type StatusKey = "open" | "assigned" | "in_progress" | "completed" | "cancelled" | "total";
 
-      const stats: Record<string, number> = {
-        total: 0,
-        open: 0,
-        assigned: 0,
-        in_progress: 0,
-        completed: 0,
-        confirmed: 0,
-        cancelled: 0,
-      };
+const stats: Record<StatusKey, number> = {
+  open: 0,
+  assigned: 0,
+  in_progress: 0,
+  completed: 0,
+  cancelled: 0,
+  total: 0,
+};
 
-      snapshot.forEach((doc) => {
-        const order = doc.data();
-        const statusKey = (order.status || '').toLowerCase();
-        stats.total++;
-        if (statusKey && stats.hasOwnProperty(statusKey)) {
-          stats[statusKey]++;
-        }
-      });
+snapshot.forEach((doc) => {
+  const order = doc.data();
+  const statusKey = (order.status || "").toLowerCase() as StatusKey;
+  stats.total++;
+  if (statusKey in stats) {
+    stats[statusKey]++;
+  }
+});
+
 
       return res.json({ stats });
     } catch (error) {
@@ -937,58 +953,53 @@ export class ServiceOrderController {
       return res.status(500).json({ error: 'Erro ao buscar estatísticas de ordens de serviço' });
     }
   }
-  async getMonthlyStats(req: AuthRequest, res: Response) {
-    try {
-      console.log('--- getMonthlyStats called ---');
-      const user = req.user;
 
-      if (!user) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
-      }
+async getMonthlyStats(req: AuthRequest, res: Response) {
+  try {
+    const user = req.user;
+    if (!user) return res.status(401).json({ error: 'Usuário não autenticado' });
 
-      // Últimos 12 meses
-      const now = new Date();
-      const months: { month: string; assigned: number; in_progress: number; completed: number }[] =
-        [];
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthName = date.toLocaleString('pt-BR', { month: 'short' });
-        months.push({ month: monthName, assigned: 0, in_progress: 0, completed: 0 });
-      }
+    const now = new Date();
+    const months: MonthData[] = [];
+    const monthKeys: string[] = [];
 
-      let query: FirebaseFirestore.Query = db.collection('serviceOrders');
-
-      if (user.userType === UserType.TECHNICIAN) {
-        query = query.where('technicianId', '==', user.uid);
-      } else if (user.userType === UserType.END_USER) {
-        query = query.where('userId', '==', user.uid);
-      }
-
-      const snapshot = await query.get();
-
-      snapshot.forEach((doc) => {
-        const order = doc.data();
-        const createdAt = order.createdAt?.toDate
-          ? order.createdAt.toDate()
-          : new Date(order.createdAt);
-        const status = (order.status || '').toLowerCase();
-        const monthIndex = months.findIndex(
-          (m) => m.month === createdAt.toLocaleString('pt-BR', { month: 'short' })
-        );
-
-        if (monthIndex !== -1) {
-          if (status === 'assigned') months[monthIndex].assigned++;
-          if (status === 'in_progress') months[monthIndex].in_progress++;
-          if (status === 'completed') months[monthIndex].completed++;
-        }
-      });
-
-      return res.json({ monthlyData: months });
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas mensais:', error);
-      return res.status(500).json({ error: 'Erro ao buscar estatísticas mensais' });
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      months.push({ month: date.toLocaleString('pt-BR', { month: 'short' }), assigned: 0, in_progress: 0, completed: 0 });
+      monthKeys.push(key);
     }
+
+    let query: FirebaseFirestore.Query = db.collection('serviceOrders');
+    if (user.userType === UserType.TECHNICIAN) query = query.where('technicianId', '==', user.uid);
+    if (user.userType === UserType.END_USER) query = query.where('userId', '==', user.uid);
+
+    const snapshot = await query.get();
+
+    snapshot.forEach((doc) => {
+      const order = doc.data() as { createdAt?: FirebaseFirestore.Timestamp | string; status?: string };
+      if (!order?.createdAt || !order.status) return;
+
+      const createdAt = 'toDate' in order.createdAt ? order.createdAt.toDate() : new Date(order.createdAt);
+      if (isNaN(createdAt.getTime())) return;
+
+      const key = `${createdAt.getFullYear()}-${createdAt.getMonth()}`;
+      const index = monthKeys.indexOf(key);
+      if (index === -1) return;
+
+      const status = order.status.toLowerCase();
+      if (status === 'assigned') months[index].assigned++;
+      else if (status === 'in_progress') months[index].in_progress++;
+      else if (status === 'completed') months[index].completed++;
+    });
+
+    return res.json({ monthlyData: months });
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas mensais:', error);
+    return res.status(500).json({ error: 'Erro ao buscar estatísticas mensais' });
   }
+}
+
 
   async updateAllServiceOrdersHandler(req: Request, res: Response) {
     try {

@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import type { Request } from 'express';
 
 export interface User {
   uid: string;
@@ -173,4 +173,10 @@ export interface AuthenticatedUser {
   phone?: string;
   establishmentId?: string | null;
   createdAt?: Date;
+}
+export interface MonthData {
+  month: string;
+  assigned: number;
+  in_progress: number;
+  completed: number;
 }

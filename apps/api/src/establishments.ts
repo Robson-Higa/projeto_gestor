@@ -1,7 +1,7 @@
 import express from 'express';
 import { EstablishmentController } from '../controllers/EstablishmentController';
-import { authenticateToken, requireAdmin } from '../../src/middleware/auth';
-import { validateEstablishment } from '../../src/middleware/validation';
+import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { validateEstablishment } from '../middleware/validation';
 
 const router = express.Router();
 const establishmentController = new EstablishmentController();

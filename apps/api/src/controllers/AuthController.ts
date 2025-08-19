@@ -1,14 +1,15 @@
-import { Request, Response } from 'express';
-import { auth, db } from '../config/firebase';
-import { User, UserType, LoginRequest, RegisterRequest, AuthRequest } from '../types';
+import type { Request, Response, NextFunction } from 'express';
+import { auth, db } from '../config/firebase.js';
+import type { User, LoginRequest, RegisterRequest, AuthRequest } from '../../types/index.js';
+  import { UserType } from '../../types/index.js'
 import {
   hashPassword,
   comparePassword,
   generateToken,
   sanitizeUser,
   generateId,
-} from '../utils/helpers';
-import { verifyToken } from '../utils/helpers'; // ajuste o caminho
+} from '../../utils/helpers.js';
+import { verifyToken } from '../../utils/helpers.js'; // ajuste o caminho
 
 export class AuthController {
   async login(req: Request, res: Response) {
@@ -35,6 +36,11 @@ export class AuthController {
       }
 
       const userDoc = snapshot.docs[0];
+if (!userDoc) {
+  return res.status(404).json({ error: 'Usuário não encontrado' });
+}
+
+
       const userData = userDoc.data() as User;
 
       if (!userData.isActive) {
@@ -193,16 +199,17 @@ export class AuthController {
 
       const userId = generateId();
       const newTechnician: User = {
-        uid: userId,
-        email,
-        password: hashedPassword,
-        name,
-        userType: UserType.TECHNICIAN,
-        establishmentId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isActive: true,
-      };
+  uid: userId,
+  email,
+  password: hashedPassword,
+  name,
+  userType: UserType.TECHNICIAN,
+  establishmentId: establishmentId ?? null, // ✅ usa null em vez de undefined
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  isActive: true,
+};
+
 
       await db.collection('users').doc(userId).set(newTechnician);
 

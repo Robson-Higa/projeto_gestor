@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import app from './index';
+import app from './src/index';
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   // Configuração específica para o Vercel

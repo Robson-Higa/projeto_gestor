@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
-import { db } from '../config/firebase';
-import { AuthRequest, UserType } from '../types';
+import type { Request, Response } from 'express';
+import { db } from '../config/firebase.js';
+import {  UserType } from '../../types/index.js';
+import type { AuthRequest } from '../../types/index.js';
 
 export class EstablishmentController {
   async getAllEstablishments(req: AuthRequest, res: Response) {
@@ -75,6 +76,9 @@ async createEstablishment(req: Request, res: Response) {
       }
 
       const { id } = req.params;
+if (!id) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       const { name, responsibleId } = req.body;
 
       const docRef = db.collection('establishments').doc(id);
@@ -99,6 +103,9 @@ async createEstablishment(req: Request, res: Response) {
       }
 
       const { id } = req.params;
+if (!id) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       await db.collection('establishments').doc(id).delete();
       return res.status(200).json({ message: 'Estabelecimento deletado com sucesso.' });
     } catch (error) {
@@ -113,6 +120,9 @@ async createEstablishment(req: Request, res: Response) {
       }
 
       const { id } = req.params;
+if (!id) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       await db.collection('establishments').doc(id).update({ isActive: false });
       return res.status(200).json({ message: 'Estabelecimento desativado.' });
     } catch (error) {
@@ -127,6 +137,9 @@ async createEstablishment(req: Request, res: Response) {
       }
 
       const { id } = req.params;
+if (!id) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       await db.collection('establishments').doc(id).update({ isActive: true });
       return res.status(200).json({ message: 'Estabelecimento ativado.' });
     } catch (error) {
@@ -166,6 +179,9 @@ async createEstablishment(req: Request, res: Response) {
 async getEstablishmentById(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
+if (!id) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
     const docRef = db.collection('establishments').doc(id);
     const doc = await docRef.get();
 

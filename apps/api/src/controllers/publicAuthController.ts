@@ -1,6 +1,6 @@
 // controllers/publicAuthController.js
-import { Request, Response } from 'express';
-import admin, { db } from '../config/firebase'; // Admin SDK
+import type { Request, Response } from 'express';
+import admin, { db } from '../config/firebase.js'; // Admin SDK
 import axios from 'axios';
 import dotenv from 'dotenv';
 
