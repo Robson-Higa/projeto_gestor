@@ -19,8 +19,9 @@ const middlewareNext = (validators) => {
 const authController = new AuthController();
 
 // Validator para login com idToken
-const validateLoginWithIdToken = [
-  body('idToken').isString().notEmpty().withMessage('ID Token é obrigatório'),
+const validateLogin = [
+  body('email').isEmail().withMessage('Email inválido'),
+  body('password').isString().notEmpty().withMessage('Senha é obrigatória'),
 ];
 
 // Função para aplicar middlewares
@@ -38,13 +39,12 @@ const applyMiddleware = (middlewares, handler) => {
 };
 
 // Rota final
-export default applyMiddleware([middlewareNext(validateLoginWithIdToken)], async (req, res) => {
+export default applyMiddleware([middlewareNext(validateLogin)], async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
   try {
-    // Chama o login do AuthController
     await authController.login(req, res);
   } catch (err) {
     console.error('Erro no login Next.js:', err);
