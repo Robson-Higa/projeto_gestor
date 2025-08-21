@@ -1,12 +1,19 @@
-import { Request, Response } from "express";
-import { db } from "../config/firebase";
-import { AuthRequest, UserType } from "../types";
-import { generateId } from "../utils/helpers";
+import type { Request, Response } from "express";
+import { db } from "../config/firebase.js";
+import {  UserType } from "../../types/index.js";
+import type { AuthRequest } from "../../types/index.js";
+
+import { generateId } from "../../utils/helpers.js";
 
 export class SectorController {
   static async getSectors(req: AuthRequest, res: Response) {
     try {
+
+      
       const { establishmentId } = req.params;
+      if (!establishmentId) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       const snapshot = await db.collection("establishments")
         .doc(establishmentId)
         .collection("sectors")
@@ -28,6 +35,9 @@ export class SectorController {
       }
 
       const { establishmentId } = req.params;
+      if (!establishmentId) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       const { name } = req.body;
 
       if (!name) return res.status(400).json({ error: "Nome do setor é obrigatório" });
@@ -60,6 +70,9 @@ export class SectorController {
       }
 
       const { establishmentId, sectorId } = req.params;
+      if (!establishmentId || !sectorId) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       const { name } = req.body;
 
       const docRef = db.collection("establishments")
@@ -90,7 +103,9 @@ export class SectorController {
       }
 
       const { establishmentId, sectorId } = req.params;
-
+      if (!establishmentId || !sectorId) {
+  return res.status(400).json({ error: 'ID do estabelecimento é obrigatório.' });
+}
       await db.collection("establishments")
         .doc(establishmentId)
         .collection("sectors")

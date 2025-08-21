@@ -1,5 +1,5 @@
-import { Request, Response } from "express";
-import { titleService } from "../services/titleService";
+import type { Request, Response } from "express";
+import { titleService } from "../services/titleService.js";
 
 export class TitleController {
   static async getAllTitles(req: Request, res: Response) {
@@ -32,6 +32,11 @@ export class TitleController {
     try {
       const { id } = req.params;
       const { title } = req.body;
+ if (!id) {
+      res.status(400).json({ error: "ID do título é obrigatório" });
+      return;
+    }
+
       if (!title || title.trim() === "") {
      res.status(400).json({ error: "O título é obrigatório" });
      return
@@ -47,6 +52,10 @@ export class TitleController {
   static async deleteTitle(req: Request, res: Response) {
     try {
       const { id } = req.params;
+       if (!id) {
+      res.status(400).json({ error: "ID do título é obrigatório" });
+      return;
+    }
       await titleService.delete(id);
       res.status(200).json({ message: "Título deletado com sucesso" });
     } catch (error) {
