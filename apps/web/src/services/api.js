@@ -23,7 +23,23 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    console.error('API error:', error);
+
+    if (error.response) {
+      console.error('❌ API error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response.status,
+        data: error.response.data,
+      });
+    } else if (error.request) {
+      console.error('❌ API error: No response received', {
+        url: error.config?.url,
+        method: error.config?.method,
+      });
+    } else {
+      console.error('❌ API error: Request setup failed', error.message);
+    }
+
     return Promise.reject(error.response?.data || error.message);
   }
 );
